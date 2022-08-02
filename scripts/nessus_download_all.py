@@ -12,7 +12,7 @@ from nessrest import ness6rest
   
 # Print error function
 def print_err(str_error, fatal=False):
-  sys.stderr.write('ERROR: ' + str_error + '\n')
+  sys.stderr.write(f'ERROR: {str_error}' + '\n')
   if fatal:
     exit('Exiting due to fatal error.')
 
@@ -36,13 +36,12 @@ password = None
 if args.keyfile:
   if os.path.isfile(args.keyfile):
     try:
-      f_key = open(args.keyfile, 'r')
-      try:
-        keys = json.loads(f_key.read())
-      except ValueError as err:
-        print_err(str(err))
-        print_err('could parse read key file "' + args.keyfile + '".', True)
-      f_key.close()
+      with open(args.keyfile, 'r') as f_key:
+        try:
+          keys = json.loads(f_key.read())
+        except ValueError as err:
+          print_err(str(err))
+          print_err('could parse read key file "' + args.keyfile + '".', True)
     except IOError:
       print_err('could not read key file "' + args.keyfile + '".', True)
   else:
@@ -58,7 +57,7 @@ if args.capath and not os.path.isdir(args.capath):
 if args.format == "db" and args.dbpasswd is None:
   print_err('Format is db but no exported db password was specified, use --dbpasswd to specify', True)
 
-nessus_url = "https://" + args.server + ":" + str(args.port)
+nessus_url = f"https://{args.server}:{str(args.port)}"
 insecure = args.insecure
 localhost = args.server == 'localhost' or args.server[:4] == '127.' or args.server == '::1'
 
@@ -85,12 +84,9 @@ if scanner:
   scans = scanner.res['scans']
   # create scan subfolders
   for f in folders:
-    if not os.path.exists(f['name']):
-      if f['type'] == 'trash':
-        if args.trash:
-          os.mkdir(f['name'])
-      else:
-        os.mkdir(f['name'])
+    if not os.path.exists(f['name']) and (f['type'] == 'trash' and args.trash
+                                          or f['type'] != 'trash'):
+      os.mkdir(f['name'])
   # try download and save scans into each folder the belong to
   for s in scans:
     scanner.scan_name = s['name']

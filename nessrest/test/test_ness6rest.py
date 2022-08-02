@@ -33,8 +33,8 @@ import nessrest.credentials as credentials
 def test_deduplicate_hosts():
     login = os.getenv("NESSUS_USER")
     password = os.getenv("NESSUS_PASSWORD")
-    url = "https://%s:%s" % (os.getenv("NESSUS_SERVER"),
-                             os.getenv("NESSUS_PORT", "8834"))
+    url = f'https://{os.getenv("NESSUS_SERVER")}:{os.getenv("NESSUS_PORT", "8834")}'
+
 
     scan = nessrest.Scanner(url=url, login=login, password=password, insecure=True)
 

@@ -19,13 +19,10 @@ class Scan(object):
                       password="",
                       insecure="",
                       template=""):
-        if scanner:
-            self.scanner = scanner
-        else:
-            self.scanner = nessrest.Scanner(url=url,
-                                            login=login,
-                                            password=password,
-                                            insecure=insecure)
+        self.scanner = scanner or nessrest.Scanner(
+            url=url, login=login, password=password, insecure=insecure
+        )
+
         self.name = name
         self.scan_id = ""
         self.scanner_id = "1"
@@ -57,24 +54,25 @@ class Scan(object):
         extra = {"uuid":self.uuid,
                  "settings":self.settings}
         if self.audits:
-            extra.update({"audits":self.audits})
+            extra["audits"] = self.audits
         if self.creds:
-            extra.update({"credentials":self.creds})
+            extra["credentials"] = self.creds
         for filename in self.uploads:
             self.scanner.upload(filename)
 
         if self.scan_id:
-            self.scanner.action(action="scans/"+str(self.scan_id),
-                                method="PUT",
-                                extra=extra)
+            self.scanner.action(
+                action=f"scans/{str(self.scan_id)}", method="PUT", extra=extra
+            )
+
             if "error" in self.scanner.res:
                 self._error(self.scanner.res["error"])
-            self.scanner.action(action="scans/"+str(self.scan_id)+
-                                "/launch",
-                                method="POST")
+            self.scanner.action(
+                action=(f"scans/{str(self.scan_id)}" + "/launch"), method="POST"
+            )
+
             if "error" in self.scanner.res:
                 self._error(self.scanner.res["error"])
-            self.get_scan_settings(self.scan_id)
         else:
             self.scanner.action(action="scans",
                                 method="POST",
@@ -82,7 +80,8 @@ class Scan(object):
             if "error" in self.scanner.res:
                 self._error(self.scanner.res["error"])
             self.scan_id = self.scanner.res["scan"]["id"]
-            self.get_scan_settings(self.scan_id)
+
+        self.get_scan_settings(self.scan_id)
 
     def is_running(self):
         self.get_scan_info()
@@ -95,16 +94,14 @@ class Scan(object):
     def get_scan_info(self,scan_id=""):
         if scan_id:
             self.scan_id = scan_id
-        self.scanner.action("scans/"+str(self.scan_id),
-                            method="GET")
+        self.scanner.action(f"scans/{str(self.scan_id)}", method="GET")
         if "info" in self.scanner.res:
             self.info = self.scanner.res["info"]
 
     def get_scan_settings(self,scan_id=""):
         if scan_id:
             self.scan_id = scan_id
-        self.scanner.action(action="editor/scan/"+str(scan_id),
-                            method="GET")
+        self.scanner.action(action=f"editor/scan/{str(scan_id)}", method="GET")
         self._cache["scan"] = self.scanner.res
         self.uuid = self._cache["scan"]["uuid"]
 
@@ -122,18 +119,18 @@ class Scan(object):
             self._cache["template"] = self.scanner.res
 
     def get_scan_template_names(self):
-        results = {}
         self.scanner.action(action="editor/scan/templates", method="GET")
-        for template in self.scan.res["templates"]:
-            results[template["name"]] = template["title"]
-        return results
+        return {
+            template["name"]: template["title"]
+            for template in self.scan.res["templates"]
+        }
 
     def set_compliance_category(self, name):
         categories = self.get_compliance_categories()
 
         # Try full word match first
         for category in categories.keys():
-            if re.search("^"+name.lower()+"$", category.lower()):
+            if re.search(f"^{name.lower()}$", category.lower()):
                 self.category = category
                 return
 
@@ -237,24 +234,24 @@ class Scan(object):
             self.folder_id = self.scanner.res["id"]
 
     def download_scan(self,filename,export_format="nessus"):
-        self.scanner.action("scans/"+str(self.scan_id),
-                            method="GET")
+        self.scanner.action(f"scans/{str(self.scan_id)}", method="GET")
         extra = {"format": export_format}
-        self.scanner.action("scans/"+str(self.scan_id)+"/export",
-                            method="POST",
-                            extra=extra)
+        self.scanner.action(
+            f"scans/{str(self.scan_id)}/export", method="POST", extra=extra
+        )
+
         file_id = self.scanner.res["file"]
         while self._export_in_progress(file_id):
             time.sleep(2)
 
-        dl_url = "scans/"+str(self.scan_id)+"/export/"+str(file_id)+"/download"
+        dl_url = f"scans/{str(self.scan_id)}/export/{str(file_id)}/download"
         content = self.scanner.action(dl_url, method="GET", download=True)
         with open(filename,"w") as out_file:
             out_file.write(content)
 
 
     def _export_in_progress(self,file_id):
-        url = "scans/"+str(self.scan_id)+"/export/"+str(file_id)+"/status"
+        url = f"scans/{str(self.scan_id)}/export/{str(file_id)}/status"
         self.scanner.action(url,method="GET")
         return self.scanner.res["status"] != "ready"
 
@@ -262,7 +259,7 @@ class Scan(object):
         result = {}
         if type(obj) is dict:
             if "inputs" in obj and obj["inputs"]:
-                result.update(self._extract_inputs(obj["inputs"]))
+                result |= self._extract_inputs(obj["inputs"])
             for key in obj:
                 result.update(self._find_inputs(obj[key]))
         elif type(obj) is list:
@@ -282,7 +279,7 @@ class Scan(object):
                 kind = item["type"]
             if "default" in item:
                 value = item["default"]
-            if key and not kind == "entry" and not value == None:
+            if key and kind != "entry" and value is not None:
                 result[key] = value
         return result
 

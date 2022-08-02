@@ -144,8 +144,10 @@ if not args.plugins:
 
 login = os.getenv("NESSUS_USER")
 password = os.getenv("NESSUS_PASSWORD")
-url = "https://%s:%s" % (os.getenv("NESSUS_SERVER"),
-                         os.getenv("NESSUS_PORT", "8834"))
+url = (
+    f'https://{os.getenv("NESSUS_SERVER")}:{os.getenv("NESSUS_PORT", "8834")}'
+)
+
 
 scan = nessrest.Scanner(url=url, login=login, password=password)
 
@@ -171,10 +173,15 @@ index = 0
 for each in extras:
     cast = str(each)
     # Update
-    if eval("args.smb_user" + cast):
-        scan.creds_smb.append({"username": eval("args.smb_user" + cast),
-                               "password": eval("args.smb_pass" + cast),
-                               "domain": eval("args.smb_domain" + cast)})
+    if eval(f"args.smb_user{cast}"):
+        scan.creds_smb.append(
+            {
+                "username": eval(f"args.smb_user{cast}"),
+                "password": eval(f"args.smb_pass{cast}"),
+                "domain": eval(f"args.smb_domain{cast}"),
+            }
+        )
+
 
         index += 1
 

@@ -46,13 +46,16 @@ def startscan(args):
     scan.policy_exists(args['policy'])
     scan.policy_set(args['policy'])
     settings = {"settings": {}}
-    settings["settings"].update({"import_nmap_xml":"yes"}) 
+    settings["settings"].update({"import_nmap_xml":"yes"})
     settings["settings"].update({"import_nmap_xml_file":filename})
-    scan.action(action="policies/" + str(scan.policy_id), method="put",extra=settings)
+    scan.action(
+        action=f"policies/{str(scan.policy_id)}", method="put", extra=settings
+    )
+
     scan.policy_set(args['policy'])
     t = ','
     targets = t.join(parse_nmapxml(args['filename']))
-    print targets
+    scan = ness6rest.Scanner(url=args['hosturl'],login=args['user'],password=args['password'], insecure=True)
     scan.scan_add(targets=targets,name=args['scanname'])
     scan.scan_run()
 
@@ -64,11 +67,10 @@ def main():
     parser.add_argument('-P','--policy', help='Nessus policy that is prepared with script_id(33818) Nmap (XML file importer)', default="nmap_xml")
     parser.add_argument('-p','--password', help='password for logging in to nessus server', required=False)
     parser.add_argument('-u','--user', help='username for logging in to nessus server', required=False)
-    
+
     args = vars(parser.parse_args())
-    
-    print args
-    
+
+    parser = argparse.ArgumentParser(description='Description of your program')
     if not args['hosturl']:
         args['hosturl'] = getpass._raw_input('Hosturl: ')
     if not args['user']:
@@ -76,8 +78,8 @@ def main():
     if not args['password']:
         args['password'] = getpass.getpass()
     if not args['scanname']:
-        args['scanname'] = "nmap_xml_%s"%datetime.now().strftime("%Y%m%d-%H%M%S")
-    print args
+        args['scanname'] = f'nmap_xml_{datetime.now().strftime("%Y%m%d-%H%M%S")}'
+    parser = argparse.ArgumentParser(description='Description of your program')
     startscan(args)
 
 if __name__ == "__main__":

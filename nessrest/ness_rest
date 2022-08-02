@@ -189,8 +189,7 @@ if not akey and not skey:
     login = config.get('server', 'login')
     password = config.get('server', 'password')
 
-url = "https://%s:%s" % (config.get('server', 'host'),
-                         config.get('server', 'port'))
+url = f"https://{config.get('server', 'host')}:{config.get('server', 'port')}"
 try:
     scan = ness6rest.Scanner(url=url, login=login, password=password,
                              api_akey=akey, api_skey=skey,
@@ -200,23 +199,25 @@ except ness6rest.SSLException as ex:
           "checking, but use this with caution!\nExiting.\n" % ex)
     sys.exit(1)
 except Exception as ex:
-    print("Unexpected Error: %s" % ex)
+    print(f"Unexpected Error: {ex}")
     sys.exit(1)
 
 if args.debug:
     scan.debug = True
 
-creds = []
 extras = [str(v) for v in ["", 1, 2, 3]]
 # Windows credentials from the config file, overridden by command line args
 args_dict = vars(args)
-get_cred = lambda k: args_dict[k] if args_dict[k] else config.get('creds', k)
-for index in extras:
-    if get_cred('smb_user' + index):
-        creds.append(credentials.WindowsPassword(
-            username=get_cred('smb_user' + index),
-            password=get_cred('smb_pass' + index),
-            domain=get_cred('smb_domain' + index)))
+get_cred = lambda k: args_dict[k] or config.get('creds', k)
+creds = [
+    credentials.WindowsPassword(
+        username=get_cred(f'smb_user{index}'),
+        password=get_cred(f'smb_pass{index}'),
+        domain=get_cred(f'smb_domain{index}'),
+    )
+    for index in extras
+    if get_cred(f'smb_user{index}')
+]
 
 # SSH credentials from the config file, overridden by command line args
 if get_cred('ssh_user') and get_cred('ssh_pass'):
@@ -264,7 +265,7 @@ if args.ports:
     scan.policy_add_ports(ports=args.ports)
 
 if args.noscan:
-    print("Policy name : " + scan.policy_name)
+    print(f"Policy name : {scan.policy_name}")
     print("Invoked with '--noscan'. Policy created. Exiting without scanning.")
     sys.exit(0)
 
